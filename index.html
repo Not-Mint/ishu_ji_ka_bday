@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Special Birthday Surprise!</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevents scrollbars */
+        }
+        .font-pacifico {
+            font-family: 'Pacifico', cursive;
+        }
+* {
+  user-select: none;
+}
+        /* --- Keyframe Animations --- */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+        @keyframes floatHeart {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes dropIn {
+            from { transform: translateY(-200%) scale(0.8); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes floatBalloon {
+            0% { transform: translateY(0) rotate(-5deg) translateX(0); opacity: 0.9; }
+            100% { transform: translateY(-120vh) rotate(15deg) translateX(var(--translateX-end, 50px)); opacity: 0; }
+        }
+
+        /* --- Animation Classes --- */
+        .animate-fade-in { animation: fadeIn 1s ease-out forwards; }
+        .animate-fade-out { animation: fadeOut 1s ease-in forwards; }
+        .animate-drop-in { animation: dropIn 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-pop-in { animation: popIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+
+        /* --- Floating Hearts --- */
+        .heart {
+            position: absolute;
+            left: 0;
+            bottom: -50px;
+            font-size: 20px;
+            color: #fb7185; /* rose-400 */
+            animation: floatHeart 10s linear;
+            z-index: 0;
+        }
+
+        /* --- Balloons --- */
+        .balloon {
+            position: absolute;
+            bottom: -200px; /* Start further down */
+            width: 80px;
+            height: 100px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; /* More balloon-like shape */
+            animation: floatBalloon 12s ease-in forwards;
+            opacity: 0; /* Start invisible */
+            z-index: 20;
+            transform: rotate(-5deg); /* Slight initial tilt */
+        }
+        .balloon::before { /* Balloon knot */
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 10px;
+            background: inherit;
+            border-radius: 50%;
+        }
+        .balloon::after { /* Balloon tail/string */
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 80px;
+            background: rgba(0,0,0,0.2);
+        }
+        #message-text {
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #text-container {
+            min-height: 20px; /* Ensure consistent height */
+            text-align: center;
+        }
+        
+
+    @keyframes pulseScale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    }
+    .animate-pulse-scale {
+    animation: pulseScale 4s ease-in-out infinite;
+    }
+
+    </style>
+</head>
+<body class="bg-rose-100 flex items-center justify-center min-h-screen transition-colors duration-1000">
+
+    <div id="hearts-container" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+    <div id="balloon-container" class="absolute inset-0 w-full h-full pointer-events-none"></div>
+    <div id="content" class="z-10 text-center p-4">
+<div id="initial-card" class="bg-white/80 backdrop-blur-sm shadow-2xl rounded-2xl p-8 md:p-12 max-w-lg mx-auto transition-all duration-500 animate-fade-in grid place-items-center min-h-[250px]">
+    <div id="text-container" class="col-start-1 row-start-1 w-full text-center">
+        <h1 id="message-text" class="text-3xl md:text-4xl font-bold text-gray-800">It's Your Special Day!</h1>
+    </div>
+
+    <div id="buttons-container" class="col-start-1 row-start-1 mt-8 opacity-0 transition-opacity duration-1000 flex flex-col items-center" style="pointer-events: none;">
+        <p class="text-2xl font-bold text-gray-700 mb-6">Do you wanna see what I made?</p>
+        <div>
+            <button id="yes-btn" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105">Yes!</button>
+            <button id="no-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform hover:scale-105 ml-4">No</button>
+        </div>
+    </div>
+
+</div>
+
+        <div id="main-sequence" class="hidden relative">
+            <div id="banner" class="absolute -top-48 left-0 right-0 flex justify-center opacity-0" style="z-index: 30;">
+                 <img src="banner.png" alt="Happy Birthday Banner" class="w-[400px] md:w-[500px]" />
+            </div>
+
+            
+
+            <div id="cake-container" class="opacity-0 transition-opacity duration-1000 pointer-events-none mt-24">
+                <img src="cake.png" alt="Birthday Cake" class="w-64 md:w-80 mx-auto drop-shadow-2xl">
+            </div>
+        </div>
+
+        <div class="absolute bottom-16 left-1/2 -translate-x-1/2 z-50">
+             <button id="action-btn" class="hidden bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-10 rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 text-lg"></button>
+        </div>
+    </div>
+
+    <div id="final-message-card" class="hidden bg-white/90 backdrop-blur-md shadow-2xl rounded-2xl p-8 md:p-12 max-w-2xl mx-auto z-20 text-center flex flex-col justify-center">
+        <h2 id="final-message-heading" class="font-pacifico text-4xl text-rose-500 mb-4">For Someone Special</h2>
+        <p   id="final-message-text" class="text-lg text-gray-700 leading-relaxed">
+            Even though we have met recently & I guess we know nothing about eachother but this was the way to show you that how much you mean to me. This is a way to show that our friendship just started. I hope we will be making some great memories together. I'm starting this new year with a new friend as you and I hope our friendship last forever.
+            <br><br>
+            <span class="font-bold text-rose-600">And on your special day, I wish you the happiest birthday!</span>
+        </p>
+    </div>
+     <audio id="birthday-music" src="song.mp3" loop></audio>
+    <script>
+        const body = document.body;
+        const heartsContainer = document.getElementById('hearts-container');
+        const initialCard = document.getElementById('initial-card');
+        const textContainer = document.getElementById('text-container');
+        const messageText = document.getElementById('message-text');
+        const buttonsContainer = document.getElementById('buttons-container');
+        const yesBtn = document.getElementById('yes-btn');
+        const noBtn = document.getElementById('no-btn');
+        const actionBtn = document.getElementById('action-btn');
+        const mainSequence = document.getElementById('main-sequence');
+        const banner = document.getElementById('banner');
+        const balloonContainer = document.getElementById('balloon-container');
+        const cakeContainer = document.getElementById('cake-container');
+        const finalMessageCard = document.getElementById('final-message-card');
+        const backgroundMusic = document.getElementById('birthday-music');
+
+        let currentStep = 0;
+        const messages = ["I wanted to make something special...", "Because you are special to me!"];
+        let messageIndex = 0;
+
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('heart');
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.animationDuration = Math.random() * 5 + 8 + 's';
+            heart.innerHTML = '♡';
+            heartsContainer.appendChild(heart);
+            setTimeout(() => heart.remove(), 13000);
+        }
+        
+function releaseBalloons() {
+    const colors = ['bg-red-400', 'bg-blue-400', 'bg-yellow-300', 'bg-purple-400', 'bg-pink-400', 'bg-orange-400', 'bg-cyan-300'];
+    for (let i = 0; i < 15; i++) {
+        setTimeout(() => {
+            const balloon = document.createElement('div');
+            balloon.className = `balloon ${colors[Math.floor(Math.random() * colors.length)]}`;
+            
+            // Spread balloons across the full screen width
+            balloon.style.left = Math.random() * 100 + 'vw';
+            
+            // Random float speed
+            balloon.style.animationDuration = Math.random() * 8 + 10 + 's';
+            
+            // Random horizontal drift
+            const translateXEnd = (Math.random() * 300 - 150);
+            balloon.style.setProperty('--translateX-end', `${translateXEnd}px`);
+            
+            balloonContainer.appendChild(balloon);
+            setTimeout(() => balloon.remove(), 18000);
+        }, i * 140);
+    }
+}
+
+
+function launchConfetti() {
+  // basic burst
+  confetti({
+    particleCount: 150,
+    spread: 100,
+    origin: { y: 0.3 }
+  });
+}
+function fadeInAudio(audioElement, duration = 4000) {
+    audioElement.volume = 0;
+    audioElement.play();
+
+    const start = performance.now();
+
+    function step(timestamp) {
+        const elapsed = timestamp - start;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Apply easing for smoother feel (ease-in-out curve)
+        const eased = progress < 0.5
+            ? 2 * progress * progress       // accelerating
+            : -1 + (4 - 2 * progress) * progress; // decelerating
+
+        audioElement.volume = eased;
+
+        if (progress < 1) {
+            requestAnimationFrame(step);
+        } else {
+            audioElement.volume = 1; // Ensure full volume at end
+        }
+    }
+
+    requestAnimationFrame(step);
+}
+
+function handleNextStep() {
+    currentStep++;
+    switch (currentStep) {
+        case 1: // This happens when the user clicks "Yes!"
+            initialCard.classList.remove('animate-fade-in');
+            initialCard.classList.add('animate-fade-out');
+            setTimeout(() => {
+                initialCard.classList.add('hidden');
+                body.classList.remove('bg-rose-100');
+                body.classList.add('bg-gray-900');
+                setTimeout(() => {
+                    actionBtn.textContent = 'Lights On ✨';
+                    actionBtn.classList.remove('hidden');
+                    actionBtn.classList.add('animate-fade-in');
+                }, 500);
+            }, 1000);
+            break;
+
+        case 2: // This happens when the user clicks "Lights On ✨"
+            // --- AUTOMATION STARTS HERE ---
+            releaseBalloons();
+            // 1. Turn lights on and play music
+            body.classList.remove('bg-gray-900');
+            body.classList.add('bg-rose-100');
+            mainSequence.classList.remove('hidden');
+            
+            // If you added the audio tag, this will play the music
+            const backgroundMusic = document.getElementById('birthday-music');
+            if (backgroundMusic) {
+                backgroundMusic.currentTime = 100; 
+                 fadeInAudio(backgroundMusic); 
+            }
+            
+            // Fade out the button while the automation runs
+            actionBtn.classList.remove('animate-fade-in');
+            actionBtn.classList.add('animate-fade-out');
+
+            // 2. After a short delay, trigger the next step (banner)
+            setTimeout(() => handleNextStep(), 1500); 
+            break;
+
+        case 3: // Auto-triggered: The banner drops in
+            launchConfetti();
+            banner.classList.add('animate-drop-in');
+            // 3. After another delay, trigger the next step (balloons)
+            setTimeout(() => handleNextStep(), 2000); 
+            break;
+
+        case 4: // Auto-triggered: The balloons are released
+            releaseBalloons();
+            // 4. After the balloons have flown a bit, trigger the next step (cake)
+            setTimeout(() => handleNextStep(), 2000); 
+            break;
+        
+        case 5: // Auto-triggered: The cake appears
+            cakeContainer.classList.add('animate-pop-in', 'animate-pulse-scale');
+            cakeContainer.style.opacity = '1';
+            cakeContainer.style.pointerEvents = 'auto';
+
+            // 5. FINAL STEP: Show the button again for the user to click
+            // The automation is now finished.
+            actionBtn.textContent = 'A Special Message For You 💌';
+            actionBtn.classList.remove('animate-fade-out');
+            actionBtn.classList.add('animate-fade-in');
+            break;
+        
+        case 6: // This happens when the user clicks "A Special Message For You 💌"
+            mainSequence.classList.add('animate-fade-out');
+            actionBtn.classList.add('animate-fade-out');
+            
+            setTimeout(() => {
+                mainSequence.style.display = 'none';
+                actionBtn.style.display = 'none';
+                finalMessageCard.classList.remove('hidden');
+                finalMessageCard.classList.add('animate-fade-in');
+
+                // --- NEW LOGIC STARTS HERE ---
+                // After a delay, switch to the second, personal message
+                setTimeout(() => {
+                    const finalHeading = document.getElementById('final-message-heading');
+                    const finalMessage = document.getElementById('final-message-text');
+
+                    // Fade the card out
+                    finalMessageCard.classList.remove('animate-fade-in');
+                    finalMessageCard.classList.add('animate-fade-out');
+
+                    // Wait for the fade-out to finish before changing the content
+                    setTimeout(() => {
+                        // Hide the original "For Someone Special" heading
+                        if (finalHeading) finalHeading.style.display = 'none';
+
+                        // Change the message, add emojis, and give it a more special style
+                        finalMessage.innerHTML = "Thoda kamm insecure hua kijiye, koi chura kar nhi le jayega mereko.<br>Aur please thoda kamm lada kijiye.<br>❤️😘🥰";
+                        finalMessage.className = 'font-maplemono font-bold text-2xl md:text-3xl text-rose-500 leading-relaxed my-4';
+
+                        // Fade the card back in with the new message
+                        finalMessageCard.classList.remove('animate-fade-out');
+                        finalMessageCard.classList.add('animate-fade-in');
+                    }, 1000); // This must match your fade-out animation time
+
+                }, 8000); // The new message will appear after 8 seconds
+
+            }, 1000);
+            break;
+            }
+        }
+        
+        yesBtn.addEventListener('click', handleNextStep);
+        noBtn.addEventListener('mouseover', (e) => {
+            const btn = e.target;
+            const x = Math.random() * (window.innerWidth - btn.offsetWidth);
+            const y = Math.random() * (window.innerHeight - btn.offsetHeight);
+            btn.style.position = 'absolute';
+            btn.style.left = `${x}px`;
+            btn.style.top = `${y}px`;
+        });
+        actionBtn.addEventListener('click', handleNextStep);
+        setInterval(createHeart, 500);
+        // --- UPDATED ANIMATION LOGIC FOR THE INITIAL CARD ---
+        const messageInterval = setInterval(() => {
+            // 1. Fade the card out
+            initialCard.classList.remove('animate-fade-in');
+            initialCard.classList.add('animate-fade-out');
+
+            setTimeout(() => {
+                // This code runs after the card has faded out
+                if (messageIndex < messages.length) {
+                    // 2. Change the text content
+                    messageText.textContent = messages[messageIndex];
+                    messageIndex++;
+
+                    // 3. Fade the card back in with the new text
+                    initialCard.classList.remove('animate-fade-out');
+                    initialCard.classList.add('animate-fade-in');
+
+                } else {
+
+                    clearInterval(messageInterval);
+
+                    textContainer.classList.add('hidden');
+                    buttonsContainer.style.opacity = '1';
+                    buttonsContainer.style.pointerEvents = 'auto';
+                    
+                    initialCard.classList.remove('animate-fade-out');
+                    initialCard.classList.add('animate-fade-in');
+                }
+            }, 1000); 
+        }, 3000); // This is the time each message is visible before the next fade begins
+
+    </script>
+</body>
+</html>
